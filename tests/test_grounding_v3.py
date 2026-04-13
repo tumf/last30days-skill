@@ -122,8 +122,100 @@ class ExaSearchTests(unittest.TestCase):
             self.assertEqual(0, artifact["resultCount"])
 
 
+class FirecrawlSearchTests(unittest.TestCase):
+    def test_firecrawl_search_normalizes_results_and_filters_dates(self):
+        mock_response = {
+            "data": [
+                {
+                    "title": "Firecrawl Result",
+                    "url": "https://example.com/firecrawl",
+                    "description": "A firecrawl snippet",
+                    "publishedDate": "2026-03-12T10:00:00.000Z",
+                },
+                {
+                    "title": "Old Result",
+                    "url": "https://example.com/old",
+                    "description": "Should be filtered",
+                    "publishedDate": "2025-12-01T00:00:00.000Z",
+                },
+                {
+                    "title": "Undated Result",
+                    "url": "https://example.com/undated",
+                    "description": "No date means filtered",
+                },
+            ]
+        }
+        with patch("lib.grounding.http.request", return_value=mock_response) as mock_req:
+            items, artifact = grounding.firecrawl_search("test", ("2026-02-25", "2026-03-27"), "fc-key")
+            self.assertEqual(1, len(items))
+            self.assertEqual("Firecrawl Result", items[0]["title"])
+            self.assertEqual("https://example.com/firecrawl", items[0]["url"])
+            self.assertEqual("2026-03-12", items[0]["date"])
+            self.assertTrue(items[0]["id"].startswith("WF"))
+            self.assertEqual("firecrawl", artifact["label"])
+            self.assertEqual(1, artifact["resultCount"])
+            # Verify API call uses Bearer auth and tbs date filter
+            call_args = mock_req.call_args
+            self.assertEqual("POST", call_args.args[0])
+            self.assertIn("firecrawl.dev", call_args.args[1])
+            self.assertEqual(f"Bearer fc-key", call_args.kwargs["headers"]["Authorization"])
+            self.assertIn("cdr:1", call_args.kwargs["json_data"]["tbs"])
+
+    def test_firecrawl_search_returns_empty_for_no_results(self):
+        with patch("lib.grounding.http.request", return_value={"data": []}):
+            items, artifact = grounding.firecrawl_search("test", ("2026-02-25", "2026-03-27"), "key")
+            self.assertEqual([], items)
+            self.assertEqual(0, artifact["resultCount"])
+
+    def test_firecrawl_search_uses_markdown_fallback_for_snippet(self):
+        mock_response = {
+            "data": [
+                {
+                    "title": "MD Result",
+                    "url": "https://example.com/md",
+                    "markdown": "Full markdown content here",
+                    "publishedDate": "2026-03-10",
+                },
+            ]
+        }
+        with patch("lib.grounding.http.request", return_value=mock_response):
+            items, _ = grounding.firecrawl_search("test", ("2026-02-25", "2026-03-27"), "key")
+            self.assertEqual(1, len(items))
+            self.assertEqual("Full markdown content here", items[0]["snippet"])
+
+
 class WebSearchDispatchTests(unittest.TestCase):
-    def test_auto_selects_brave_when_key_present(self):
+    def test_auto_selects_firecrawl_when_key_present(self):
+        config = {"FIRECRAWL_API_KEY": "test-key"}
+        with patch("lib.grounding.firecrawl_search", return_value=([], {})) as mock:
+            grounding.web_search("test", ("2026-02-25", "2026-03-27"), config, backend="auto")
+            mock.assert_called_once()
+
+    def test_auto_prefers_firecrawl_over_brave(self):
+        config = {"FIRECRAWL_API_KEY": "fc-key", "BRAVE_API_KEY": "brave-key"}
+        with patch("lib.grounding.firecrawl_search", return_value=([], {})) as mock_fc, \
+             patch("lib.grounding.brave_search", return_value=([], {})) as mock_brave:
+            grounding.web_search("test", ("2026-02-25", "2026-03-27"), config, backend="auto")
+            mock_fc.assert_called_once()
+            mock_brave.assert_not_called()
+
+    def test_auto_prefers_firecrawl_over_all(self):
+        config = {"FIRECRAWL_API_KEY": "fc-key", "BRAVE_API_KEY": "brave-key", "EXA_API_KEY": "exa-key", "SERPER_API_KEY": "serper-key"}
+        with patch("lib.grounding.firecrawl_search", return_value=([], {})) as mock_fc, \
+             patch("lib.grounding.brave_search", return_value=([], {})) as mock_brave, \
+             patch("lib.grounding.exa_search", return_value=([], {})) as mock_exa, \
+             patch("lib.grounding.serper_search", return_value=([], {})) as mock_serper:
+            grounding.web_search("test", ("2026-02-25", "2026-03-27"), config, backend="auto")
+            mock_fc.assert_called_once()
+            mock_brave.assert_not_called()
+            mock_exa.assert_not_called()
+            mock_serper.assert_not_called()
+
+    def test_explicit_firecrawl_without_key_raises(self):
+        with self.assertRaises(RuntimeError):
+            grounding.web_search("test", ("2026-02-25", "2026-03-27"), {}, backend="firecrawl")
+
+    def test_auto_selects_brave_when_only_brave_key(self):
         config = {"BRAVE_API_KEY": "test-key"}
         with patch("lib.grounding.brave_search", return_value=([], {})) as mock:
             grounding.web_search("test", ("2026-02-25", "2026-03-27"), config, backend="auto")
@@ -151,30 +243,12 @@ class WebSearchDispatchTests(unittest.TestCase):
         items, artifact = grounding.web_search("test", ("2026-02-25", "2026-03-27"), config, backend="none")
         self.assertEqual([], items)
 
-    def test_auto_prefers_brave_over_exa(self):
-        config = {"BRAVE_API_KEY": "brave-key", "EXA_API_KEY": "exa-key"}
-        with patch("lib.grounding.brave_search", return_value=([], {})) as mock_brave, \
-             patch("lib.grounding.exa_search", return_value=([], {})) as mock_exa:
-            grounding.web_search("test", ("2026-02-25", "2026-03-27"), config, backend="auto")
-            mock_brave.assert_called_once()
-            mock_exa.assert_not_called()
-
     def test_auto_prefers_exa_over_serper(self):
         config = {"EXA_API_KEY": "exa-key", "SERPER_API_KEY": "serper-key"}
         with patch("lib.grounding.exa_search", return_value=([], {})) as mock_exa, \
              patch("lib.grounding.serper_search", return_value=([], {})) as mock_serper:
             grounding.web_search("test", ("2026-02-25", "2026-03-27"), config, backend="auto")
             mock_exa.assert_called_once()
-            mock_serper.assert_not_called()
-
-    def test_auto_prefers_brave_when_all_keys_present(self):
-        config = {"BRAVE_API_KEY": "brave-key", "EXA_API_KEY": "exa-key", "SERPER_API_KEY": "serper-key"}
-        with patch("lib.grounding.brave_search", return_value=([], {})) as mock_brave, \
-             patch("lib.grounding.exa_search", return_value=([], {})) as mock_exa, \
-             patch("lib.grounding.serper_search", return_value=([], {})) as mock_serper:
-            grounding.web_search("test", ("2026-02-25", "2026-03-27"), config, backend="auto")
-            mock_brave.assert_called_once()
-            mock_exa.assert_not_called()
             mock_serper.assert_not_called()
 
     def test_explicit_exa_without_key_raises(self):

@@ -79,13 +79,13 @@ fi
 ## Runtime expectations
 
 - One reasoning provider is required: `GOOGLE_API_KEY` for Gemini, `OPENAI_API_KEY` for OpenAI, or `XAI_API_KEY` for xAI.
-- `BRAVE_API_KEY` enables Brave web search (recommended). `SERPER_API_KEY` is the web fallback.
+- `FIRECRAWL_API_KEY` enables Firecrawl web search (recommended). `BRAVE_API_KEY` and `SERPER_API_KEY` are compatible alternatives.
 - `SCRAPECREATORS_API_KEY` enables Reddit, TikTok, and Instagram.
 - `XAI_API_KEY` enables xAI reasoning and X search.
 - `AUTH_TOKEN` plus `CT0` enables Bird-backed X search.
 - `yt-dlp` enables YouTube.
 - Planning and reranking fall back gracefully: Gemini -> OpenAI -> xAI -> deterministic/local.
-- Web retrieval stays within Brave/Serper dated results. Undated web hits are dropped.
+- Web retrieval stays within Firecrawl/Brave/Serper dated results. Undated web hits are dropped.
 
 ## Output model
 
@@ -141,7 +141,7 @@ Use exact product/tool names, specific quotes, and what sources actually say. If
 5. **Polymarket odds** -- real money on outcomes cuts through opinion. Include specific odds AND movement.
 6. **TikTok/Instagram** -- viral/creator signal. Cite @creators with views/likes.
 7. **Hacker News** -- technical community perspective. Cite as "per HN."
-8. **Web (Brave/Serper)** -- cite only when social sources don't cover a fact.
+8. **Web (Firecrawl/Brave/Serper)** -- cite only when social sources don't cover a fact.
 
 ### Polymarket interpretation
 
@@ -219,7 +219,7 @@ After research completes, treat yourself as an expert on this topic. Answer foll
 - Sends search queries to Algolia HN Search API (free, no auth)
 - Sends search queries to Polymarket Gamma API (free, no auth)
 - Runs yt-dlp locally for YouTube search and transcript extraction (no API key)
-- Sends search queries to Brave Search API or Serper for web search (optional)
+- Sends search queries to Firecrawl API (recommended), Brave Search API, or Serper for web search (optional)
 - Uses Gemini, OpenAI, or xAI for LLM planning and reranking
 - Stores findings in local SQLite database (--store mode only)
 
