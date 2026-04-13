@@ -20,7 +20,8 @@
 
 ## 重要な配線・前提
 - Python は 3.12+ 必須。CLI 自身が 3.12 未満を即終了する (`scripts/last30days.py`)。
-- X の vendored client は Node 22+ 前提 (`scripts/lib/vendor/bird-search/package.json`)。Python 変更だけなら通常 Node 作業は不要。
+- X 検索の推奨バックエンドは `xcom-rs` CLI (`scripts/lib/xcom_rs_x.py`)。`dotenvx run -f ~/.env -- xcom-rs search recent ...` で実行。`LAST30DAYS_X_BACKEND=xcom_rs` で明示指定も可。
+- レガシー Bird client (`scripts/lib/bird_x.py`) は Node 22+ 前提で移行期間中のフォールバック。`xcom-rs` が利用可能なら自動的に優先される。
 - `scripts/lib/__init__.py` は comment-only の package marker を維持すること。eager import を足さない。
 - `--search=web,hn,...` の別名正規化は `pipeline.SEARCH_ALIAS` が正。README の文言ではなくここに合わせる。
 - `github` source は `GITHUB_TOKEN` がなくても `gh` があれば available 扱いになる (`scripts/lib/pipeline.py`)。

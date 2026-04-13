@@ -17,6 +17,7 @@ class UiV3Tests(unittest.TestCase):
             "available_sources": ["grounding", "youtube"],
             "providers": {"google": True, "openai": False, "xai": False},
             "x_backend": None,
+            "xcom_rs_status": {"available": False, "missing": ["xcom-rs not installed", "dotenvx unavailable"]},
             "bird_installed": True,
             "bird_authenticated": False,
             "bird_username": None,
@@ -29,7 +30,7 @@ class UiV3Tests(unittest.TestCase):
         output = stderr.getvalue()
         self.assertIn("Reddit", output)
         self.assertIn("unavailable", output)
-        self.assertIn("Add AUTH_TOKEN/CT0 or XAI_API_KEY", output)
+        self.assertIn("xcom-rs", output)
         self.assertIn("brave API available", output)
 
     def test_build_nux_message_mentions_v3_unlock_paths(self):
@@ -71,6 +72,51 @@ class UiV3Tests(unittest.TestCase):
         self.assertIn("Bluesky: 3 posts", output)
         self.assertIn("Truth Social: 1 post", output)
         self.assertIn("Xiaohongshu: 4 posts", output)
+
+
+    def test_xcom_rs_backend_shown_in_banner(self):
+        diag = {
+            "available_sources": ["reddit", "x", "youtube", "grounding"],
+            "providers": {"google": True},
+            "x_backend": "xcom_rs",
+            "xcom_rs_status": {"available": True, "missing": []},
+            "bird_installed": False,
+            "bird_authenticated": False,
+            "bird_username": None,
+            "native_web_backend": "brave",
+        }
+        # All sources available -> no banner. Remove one to trigger banner.
+        diag["available_sources"] = ["reddit", "x", "youtube"]
+        with mock.patch.object(ui, "IS_TTY", False):
+            stderr = io.StringIO()
+            with redirect_stderr(stderr):
+                ui.show_diagnostic_banner(diag)
+        output = stderr.getvalue()
+        self.assertIn("xcom-rs", output)
+
+    def test_xcom_rs_missing_prerequisites_shown(self):
+        diag = {
+            "available_sources": ["youtube"],
+            "providers": {"google": True},
+            "x_backend": None,
+            "xcom_rs_status": {"available": False, "missing": ["xcom-rs not installed"]},
+            "bird_installed": False,
+            "bird_authenticated": False,
+            "bird_username": None,
+            "native_web_backend": None,
+        }
+        with mock.patch.object(ui, "IS_TTY", False):
+            stderr = io.StringIO()
+            with redirect_stderr(stderr):
+                ui.show_diagnostic_banner(diag)
+        output = stderr.getvalue()
+        self.assertIn("xcom-rs not installed", output)
+
+    def test_nux_message_mentions_xcom_rs(self):
+        text = ui._build_nux_message(
+            {"available_sources": ["reddit", "youtube"]}
+        )
+        self.assertIn("xcom-rs", text)
 
 
 if __name__ == "__main__":

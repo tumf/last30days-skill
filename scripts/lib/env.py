@@ -351,6 +351,9 @@ def extract_browser_credentials(config: dict[str, Any]) -> dict[str, str]:
 
 def get_x_source_with_method(config: dict[str, Any]) -> tuple[str | None, str]:
     """Return (source, method) for X search, where method describes the auth origin."""
+    from . import xcom_rs_x
+    if xcom_rs_x.is_available():
+        return "xcom_rs", "xcom_rs"
     if config.get("XAI_API_KEY"):
         return "xai", "xai"
     if config.get("AUTH_TOKEN") and config.get("CT0"):
@@ -389,7 +392,11 @@ def get_reddit_source(config: dict[str, Any]) -> str | None:
 def get_x_source(config: dict[str, Any]) -> str | None:
     """Determine the best available explicit X/Twitter source.
 
-    Priority: explicit backend pin, then xAI, then Bird with explicit cookies.
+    Priority:
+      1. explicit ``LAST30DAYS_X_BACKEND=xcom_rs`` when prerequisites are met
+      2. explicit ``LAST30DAYS_X_BACKEND=xai`` when XAI_API_KEY is present
+      3. explicit ``LAST30DAYS_X_BACKEND=bird`` when cookies + Node are present
+      4. auto: xcom_rs > xai > bird
 
     Browser-cookie probing is intentionally not used here. Automatic Keychain
     access causes popups during normal pipeline runs. Bird is only considered
@@ -399,23 +406,26 @@ def get_x_source(config: dict[str, Any]) -> str | None:
         config: Configuration dict from get_config()
 
     Returns:
-        'bird' if Bird is installed and explicit cookies are configured,
-        'xai' if XAI_API_KEY is configured,
-        None if no X source available.
+        'xcom_rs', 'xai', 'bird', or None.
     """
-    # Import here to avoid circular dependency
-    from . import bird_x
+    from . import bird_x, xcom_rs_x
 
     preferred = (config.get('LAST30DAYS_X_BACKEND') or '').lower()
     has_bird_creds = bool(config.get('AUTH_TOKEN') and config.get('CT0'))
     if has_bird_creds:
         bird_x.set_credentials(config.get('AUTH_TOKEN'), config.get('CT0'))
 
+    # Explicit backend pin
+    if preferred == 'xcom_rs':
+        return 'xcom_rs' if xcom_rs_x.is_available() else None
     if preferred == 'xai':
         return 'xai' if config.get('XAI_API_KEY') else None
     if preferred == 'bird':
         return 'bird' if has_bird_creds and bird_x.is_bird_installed() else None
 
+    # Auto-detect: xcom_rs preferred, then xai, then bird
+    if xcom_rs_x.is_available():
+        return 'xcom_rs'
     if config.get('XAI_API_KEY'):
         return 'xai'
     if has_bird_creds and bird_x.is_bird_installed():
@@ -574,24 +584,21 @@ def get_x_source_status(config: dict[str, Any]) -> dict[str, Any]:
     """Get detailed X source status for UI decisions.
 
     Returns:
-        Dict with keys: source, bird_installed, bird_authenticated,
-        bird_username, xai_available, can_install_bird
+        Dict with keys: source, xcom_rs_status, bird_installed,
+        bird_authenticated, bird_username, xai_available, can_install_bird
     """
-    from . import bird_x
+    from . import bird_x, xcom_rs_x
 
     bird_status = bird_x.get_bird_status()
+    xcom_rs_status = xcom_rs_x.get_status()
     xai_available = bool(config.get('XAI_API_KEY'))
 
-    # Determine active source
-    if bird_status["authenticated"]:
-        source = 'bird'
-    elif xai_available:
-        source = 'xai'
-    else:
-        source = None
+    # Determine active source using same precedence as get_x_source
+    source = get_x_source(config)
 
     return {
         "source": source,
+        "xcom_rs_status": xcom_rs_status,
         "bird_installed": bird_status["installed"],
         "bird_authenticated": bird_status["authenticated"],
         "bird_username": bird_status["username"],

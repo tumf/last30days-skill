@@ -82,7 +82,8 @@ fi
 - `BRAVE_API_KEY` enables Brave web search (recommended). `SERPER_API_KEY` is the web fallback.
 - `SCRAPECREATORS_API_KEY` enables Reddit, TikTok, and Instagram.
 - `XAI_API_KEY` enables xAI reasoning and X search.
-- `AUTH_TOKEN` plus `CT0` enables Bird-backed X search.
+- `xcom-rs` + `dotenvx` with `~/.env` bearer token enables the preferred X search backend (`xcom_rs`). Install: `cargo install xcom-rs`.
+- `AUTH_TOKEN` plus `CT0` enables legacy Bird-backed X search (migration fallback).
 - `yt-dlp` enables YouTube.
 - Planning and reranking fall back gracefully: Gemini -> OpenAI -> xAI -> deterministic/local.
 - Web retrieval stays within Brave/Serper dated results. Undated web hits are dropped.
@@ -215,7 +216,7 @@ After research completes, treat yourself as an expert on this topic. Answer foll
 
 **What this skill does:**
 - Sends search queries to ScrapeCreators API for Reddit, TikTok, Instagram search
-- Sends search queries via xAI API or Bird client for X search
+- Sends search queries via xcom-rs CLI, xAI API, or Bird client for X search
 - Sends search queries to Algolia HN Search API (free, no auth)
 - Sends search queries to Polymarket Gamma API (free, no auth)
 - Runs yt-dlp locally for YouTube search and transcript extraction (no API key)
