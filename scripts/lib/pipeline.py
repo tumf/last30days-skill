@@ -109,7 +109,7 @@ def available_sources(config: dict[str, Any], requested_sources: list[str] | Non
         available.append("bluesky")
     if env.is_truthsocial_available(config):
         available.append("truthsocial")
-    if config.get("BRAVE_API_KEY") or config.get("EXA_API_KEY") or config.get("SERPER_API_KEY") or config.get("PARALLEL_API_KEY"):
+    if config.get("FIRECRAWL_API_KEY") or config.get("BRAVE_API_KEY") or config.get("EXA_API_KEY") or config.get("SERPER_API_KEY") or config.get("PARALLEL_API_KEY"):
         available.append("grounding")
     # Perplexity Sonar: opt-in additive source via INCLUDE_SOURCES=perplexity
     include_sources = (config.get("INCLUDE_SOURCES") or "").lower().split(",")
@@ -131,14 +131,16 @@ def diagnose(config: dict[str, Any], requested_sources: list[str] | None = None)
     google_key = _google_key(config)
     x_status = env.get_x_source_status(config)
     native_web_backend = None
-    if config.get("BRAVE_API_KEY"):
-        native_web_backend = "brave"
+    if config.get("FIRECRAWL_API_KEY"):
+        native_web_backend = "firecrawl"
     elif config.get("EXA_API_KEY"):
         native_web_backend = "exa"
     elif config.get("SERPER_API_KEY"):
         native_web_backend = "serper"
     elif config.get("PARALLEL_API_KEY"):
         native_web_backend = "parallel"
+    elif config.get("BRAVE_API_KEY"):
+        native_web_backend = "brave"
     providers_status = {
         "google": bool(google_key),
         "openai": bool(config.get("OPENAI_API_KEY")) and config.get("OPENAI_AUTH_STATUS") == env.AUTH_STATUS_OK,

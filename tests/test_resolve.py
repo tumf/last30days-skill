@@ -12,6 +12,9 @@ class TestHasBackend(unittest.TestCase):
     def test_no_keys_returns_false(self):
         self.assertFalse(resolve._has_backend({}))
 
+    def test_firecrawl_key_returns_true(self):
+        self.assertTrue(resolve._has_backend({"FIRECRAWL_API_KEY": "key"}))
+
     def test_brave_key_returns_true(self):
         self.assertTrue(resolve._has_backend({"BRAVE_API_KEY": "key"}))
 

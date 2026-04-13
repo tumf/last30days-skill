@@ -20,6 +20,7 @@ metadata:
         - XAI_API_KEY
         - OPENROUTER_API_KEY
         - PARALLEL_API_KEY
+        - FIRECRAWL_API_KEY
         - BRAVE_API_KEY
         - APIFY_API_TOKEN
         - AUTH_TOKEN
@@ -129,7 +130,7 @@ Then for each missing item, offer setup in priority order:
 
 3. **YouTube** (if yt-dlp not found): "YouTube search needs yt-dlp. Run: `pip install yt-dlp`"
 
-4. **Web search** (if no Brave/Exa/Serper key): "A web search key enables smarter results. Brave Search is free for 2,000 queries/month at brave.com/search/api"
+4. **Web search** (if no Firecrawl/Brave/Exa/Serper key): "A web search key enables smarter results. Firecrawl is recommended (firecrawl.dev). Brave Search is a compatible alternative at brave.com/search/api"
 
 After setup, write `SETUP_COMPLETE=true` to .env and proceed to research.
 
@@ -258,7 +259,8 @@ Perplexity Sonar Pro (AI-synthesized research via OpenRouter):
 Other bonus sources (add anytime):
 - `EXA_API_KEY=xxx` - semantic web search, 1K free/month (exa.ai)
 - `BSKY_HANDLE=you.bsky.social` + `BSKY_APP_PASSWORD=xxx` - Bluesky (free app password)
-- `BRAVE_API_KEY=xxx` - Brave web search
+- `FIRECRAWL_API_KEY=xxx` - Firecrawl web search (recommended)
+- `BRAVE_API_KEY=xxx` - Brave web search (compatibility)
 
 Always add this last line: `SETUP_COMPLETE=true`
 
@@ -299,8 +301,9 @@ Create `~/.config/last30days/.env` if it doesn't exist (check first!), pre-popul
 # BSKY_HANDLE=you.bsky.social
 # BSKY_APP_PASSWORD=
 
-# Web search:
-# BRAVE_API_KEY=              # 2,000 free queries/month at brave.com/search/api
+# Web search (Firecrawl recommended):
+# FIRECRAWL_API_KEY=          # firecrawl.dev (recommended)
+# BRAVE_API_KEY=              # 2,000 free queries/month at brave.com/search/api (compatibility)
 # OPENROUTER_API_KEY=         # Perplexity Sonar via OpenRouter
 
 SETUP_COMPLETE=true
@@ -578,7 +581,7 @@ Then do WebSearch for: `{TOPIC_A} vs {TOPIC_B} comparison {YEAR}` and `{TOPIC_A}
 
 ## Step 0.55: Pre-Research Intelligence (resolve communities + handles)
 
-> **PLATFORM GATE:** If your platform does NOT support WebSearch (e.g., OpenClaw, raw CLI), **skip Steps 0.55 and 0.75** but add `--auto-resolve` to the Python command in the Research Execution section. The engine will do its own pre-research using configured web search backends (Brave, Exa, or Serper) to discover subreddits, X handles, and current events context before planning.
+> **PLATFORM GATE:** If your platform does NOT support WebSearch (e.g., OpenClaw, raw CLI), **skip Steps 0.55 and 0.75** but add `--auto-resolve` to the Python command in the Research Execution section. The engine will do its own pre-research using configured web search backends (Firecrawl, Brave, Exa, or Serper) to discover subreddits, X handles, and current events context before planning.
 
 **Run 2-3 focused WebSearches (in parallel) to resolve platform-specific targeting. Do NOT search for every platform individually — that wastes time. Instead, use your knowledge of the topic to infer most targeting, and only WebSearch for what you can't infer.**
 
@@ -701,7 +704,7 @@ Only show lines for platforms where something was resolved. Skip empty lines. Th
 - For how_to: prioritize YouTube (tutorials) and Reddit (guides)
 - Primary subquery weight = 1.0, secondary = 0.6-0.8, peripheral = 0.3-0.5
 
-**Available sources (include ALL in primary subquery):** reddit, x, youtube, tiktok, instagram, hackernews, polymarket. Optional: bluesky, truthsocial, threads, pinterest, grounding (web search — only if user has Brave/Exa/Serper key)
+**Available sources (include ALL in primary subquery):** reddit, x, youtube, tiktok, instagram, hackernews, polymarket. Optional: bluesky, truthsocial, threads, pinterest, grounding (web search — only if user has Firecrawl/Brave/Exa/Serper key)
 
 **Intent → freshness_mode mapping:**
 - breaking_news, prediction → `strict_recent`
@@ -763,7 +766,7 @@ fi
 - Omit any flag where the value was not resolved (empty).
 
 **If you skipped Steps 0.55 and 0.75 (no WebSearch -- OpenClaw, Codex, etc.), add:**
-- `--auto-resolve` (the engine will use Brave/Exa/Serper to discover subreddits and context before planning)
+- `--auto-resolve` (the engine will use Firecrawl/Brave/Exa/Serper to discover subreddits and context before planning)
 
 **If you skipped Steps 0.55 and 0.75 (no WebSearch), run the command as-is.** The Python engine will plan internally.
 
@@ -1362,7 +1365,7 @@ Want another prompt? Just tell me what you're creating next.
 - Sends search queries to Polymarket Gamma API (`gamma-api.polymarket.com`) for prediction market discovery (free, no auth)
 - Runs `yt-dlp` locally for YouTube search and transcript extraction (no API key, public data)
 - Sends search queries to ScrapeCreators API (`api.scrapecreators.com`) for TikTok and Instagram search, transcript/caption extraction (PAYG after 10,000 free API calls)
-- Optionally sends search queries to Brave Search API, Parallel AI API, or OpenRouter API for web search
+- Optionally sends search queries to Firecrawl API (recommended), Brave Search API, Parallel AI API, or OpenRouter API for web search
 - Fetches public Reddit thread data from `reddit.com` for engagement metrics
 - Stores research findings in local SQLite database (watchlist mode only)
 - Saves research briefings as .md files to ~/Documents/Last30Days/

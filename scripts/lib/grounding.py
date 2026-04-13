@@ -1,4 +1,4 @@
-"""Web search retrieval via Brave Search, Exa, and Serper."""
+"""Web search retrieval via Firecrawl, Brave Search, Exa, and Serper."""
 
 from __future__ import annotations
 
@@ -167,6 +167,57 @@ def parallel_search(
     return items, artifact
 
 
+# ---------------------------------------------------------------------------
+# Firecrawl Search API
+# ---------------------------------------------------------------------------
+
+def firecrawl_search(
+    query: str, date_range: tuple[str, str], api_key: str, count: int = 5,
+) -> tuple[list[dict], dict]:
+    # Build custom date range filter: cdr:1,cd_min:MM/DD/YYYY,cd_max:MM/DD/YYYY
+    tbs = (
+        f"cdr:1,cd_min:{_serper_date_param(date_range[0])},"
+        f"cd_max:{_serper_date_param(date_range[1])}"
+    )
+    data = http.request(
+        "POST", "https://api.firecrawl.dev/v1/search",
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        },
+        json_data={
+            "query": query,
+            "limit": count,
+            "tbs": tbs,
+            "lang": "en",
+        },
+        timeout=15,
+    )
+    items = []
+    for i, r in enumerate((data.get("data", []))[:count]):
+        if not isinstance(r, dict):
+            continue
+        url = r.get("url", "")
+        if not url:
+            continue
+        raw_date = r.get("publishedDate") or r.get("published_date") or ""
+        pub_date = _normalize_date(raw_date.split("T")[0] if "T" in raw_date else raw_date[:10]) if raw_date else None
+        if not _in_date_range(pub_date, date_range):
+            continue
+        items.append({
+            "id": f"WF{i + 1}",
+            "title": r.get("title", ""),
+            "url": url,
+            "source_domain": _domain(url),
+            "snippet": (r.get("description") or r.get("markdown") or "")[:500],
+            "date": pub_date,
+            "relevance": 0.8,
+            "why_relevant": "Firecrawl web search",
+        })
+    artifact = {"label": "firecrawl", "webSearchQueries": [query], "resultCount": len(items)}
+    return items, artifact
+
+
 def _parse_serper_date(raw: str) -> str | None:
     if not raw:
         return None
@@ -195,16 +246,23 @@ def web_search(
 ) -> tuple[list[dict], dict]:
     """Run web search with the specified or auto-detected backend."""
     if backend == "auto":
-        if config.get("BRAVE_API_KEY"):
-            backend = "brave"
+        if config.get("FIRECRAWL_API_KEY"):
+            backend = "firecrawl"
         elif config.get("EXA_API_KEY"):
             backend = "exa"
         elif config.get("SERPER_API_KEY"):
             backend = "serper"
         elif config.get("PARALLEL_API_KEY"):
             backend = "parallel"
+        elif config.get("BRAVE_API_KEY"):
+            backend = "brave"
         else:
             return [], {}
+    if backend == "firecrawl":
+        key = config.get("FIRECRAWL_API_KEY")
+        if not key:
+            raise RuntimeError("FIRECRAWL_API_KEY is required when web_backend='firecrawl'")
+        return firecrawl_search(query, date_range, key)
     if backend == "brave":
         key = config.get("BRAVE_API_KEY")
         if not key:

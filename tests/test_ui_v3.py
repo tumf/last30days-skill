@@ -33,6 +33,41 @@ class UiV3Tests(unittest.TestCase):
         self.assertIn("xcom-rs", output)
         self.assertIn("brave API available", output)
 
+    def test_show_diagnostic_banner_recommends_firecrawl_when_no_web(self):
+        diag = {
+            "available_sources": ["reddit", "youtube"],
+            "providers": {"google": True, "openai": False, "xai": False},
+            "x_backend": None,
+            "bird_installed": True,
+            "bird_authenticated": False,
+            "bird_username": None,
+            "native_web_backend": None,
+        }
+        with mock.patch.object(ui, "IS_TTY", False):
+            stderr = io.StringIO()
+            with redirect_stderr(stderr):
+                ui.show_diagnostic_banner(diag)
+        output = stderr.getvalue()
+        self.assertIn("FIRECRAWL_API_KEY", output)
+        self.assertIn("recommended", output)
+
+    def test_show_diagnostic_banner_reports_firecrawl_backend(self):
+        diag = {
+            "available_sources": ["grounding", "youtube"],
+            "providers": {"google": True, "openai": False, "xai": False},
+            "x_backend": None,
+            "bird_installed": True,
+            "bird_authenticated": False,
+            "bird_username": None,
+            "native_web_backend": "firecrawl",
+        }
+        with mock.patch.object(ui, "IS_TTY", False):
+            stderr = io.StringIO()
+            with redirect_stderr(stderr):
+                ui.show_diagnostic_banner(diag)
+        output = stderr.getvalue()
+        self.assertIn("firecrawl", output.lower())
+
     def test_build_nux_message_mentions_v3_unlock_paths(self):
         text = ui._build_nux_message(
             {"available_sources": ["reddit", "youtube", "grounding"]}
