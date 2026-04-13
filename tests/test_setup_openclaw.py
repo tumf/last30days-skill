@@ -65,6 +65,16 @@ class TestRunOpenclawSetup:
         assert result["keys"]["scrapecreators"] is False
 
     @patch("shutil.which")
+    def test_firecrawl_key_detected(self, mock_which):
+        """FIRECRAWL_API_KEY in config is reported as present."""
+        mock_which.return_value = None
+        config = {"FIRECRAWL_API_KEY": "fc-abc123"}
+
+        result = setup_wizard.run_openclaw_setup(config)
+
+        assert result["keys"]["firecrawl"] is True
+
+    @patch("shutil.which")
     def test_x_method_xai(self, mock_which):
         """x_method is 'xai' when XAI_API_KEY is set."""
         mock_which.return_value = None

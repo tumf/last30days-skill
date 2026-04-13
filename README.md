@@ -171,7 +171,7 @@ These platforms don't have relationships with each other. X doesn't know what Re
 | Bluesky | App password from bsky.app | Free |
 | TikTok + Instagram + Threads + Pinterest + YouTube comments | ScrapeCreators key | 10,000 free calls |
 | Perplexity Sonar | OpenRouter key | Pay as you go |
-| Web search | Brave Search key | 2,000 free queries/month |
+| Web search | Firecrawl key (recommended) or Brave Search key | See provider pricing |
 
 ## How it works
 

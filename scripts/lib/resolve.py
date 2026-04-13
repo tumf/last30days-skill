@@ -22,7 +22,8 @@ def _log(msg: str) -> None:
 def _has_backend(config: dict) -> bool:
     """Check if any web search backend is available."""
     return bool(
-        config.get("BRAVE_API_KEY")
+        config.get("FIRECRAWL_API_KEY")
+        or config.get("BRAVE_API_KEY")
         or config.get("EXA_API_KEY")
         or config.get("SERPER_API_KEY")
         or config.get("PARALLEL_API_KEY")
