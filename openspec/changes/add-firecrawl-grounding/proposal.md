@@ -24,7 +24,7 @@ The current native web grounding path treats `BRAVE_API_KEY`, `EXA_API_KEY`, `SE
 
 ## Proposed Solution
 
-Add Firecrawl as a first-class native web grounding backend keyed by `FIRECRAWL_API_KEY`, using Firecrawl's `/v2/search` API for search-only grounding results. Update backend auto-selection, source availability detection, diagnostics, setup reporting, UI copy, and user-facing docs so that Firecrawl becomes the recommended web backend while keeping Brave compatibility for existing users.
+Add Firecrawl as a first-class native web grounding backend keyed by `FIRECRAWL_API_KEY`, using Firecrawl's `/v2/search` API for search-only grounding results. Align the proposal with the current canonical spec split by expressing setup/config behavior under `configuration-and-setup`, CLI diagnostics under `cli-runtime`, and backend-specific grounding behavior under a dedicated `web-grounding` capability. Update backend auto-selection, source availability detection, diagnostics, setup reporting, UI copy, and user-facing docs so that Firecrawl becomes the recommended web backend while keeping Brave compatibility for existing users.
 
 ## Acceptance Criteria
 

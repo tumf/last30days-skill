@@ -11,6 +11,7 @@ This change adds Firecrawl as a native grounding backend for `/last30days` witho
 - `scripts/lib/resolve.py` depends on `grounding.web_search(...)` for auto-resolve and only needs normalized search results.
 - `scripts/lib/env.py` is the source of truth for supported environment keys.
 - `scripts/lib/setup_wizard.py` and `scripts/lib/ui.py` surface setup hints and backend availability to users.
+- Canonical specs are currently split across `cli-runtime` and `configuration-and-setup`, so this proposal should modify those existing capabilities where behavior already belongs rather than duplicating their intent in a brand-new baseline domain.
 - Repo instructions require `uv run pytest -q` for verification, and `bash scripts/sync.sh` when `scripts/` or `SKILL.md` changes.
 
 ## Proposed backend contract
