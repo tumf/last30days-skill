@@ -17,12 +17,14 @@ class EnvV3Tests(unittest.TestCase):
         bird_x._credentials.clear()
         bird_x._credentials.update(self._saved_credentials)
 
-    def test_x_source_prefers_xai_without_bird_probe(self):
+    @mock.patch("lib.xcom_rs_x.is_available", return_value=False)
+    def test_x_source_prefers_xai_without_bird_probe(self, _xcom):
         with mock.patch("lib.bird_x.is_bird_authenticated", side_effect=AssertionError("should not probe bird auth")):
             source = env.get_x_source({"XAI_API_KEY": "test"})
         self.assertEqual("xai", source)
 
-    def test_x_source_uses_bird_with_explicit_cookies(self):
+    @mock.patch("lib.xcom_rs_x.is_available", return_value=False)
+    def test_x_source_uses_bird_with_explicit_cookies(self, _xcom):
         with mock.patch("lib.bird_x.is_bird_installed", return_value=True):
             source = env.get_x_source({"AUTH_TOKEN": "a", "CT0": "b"})
         self.assertEqual("bird", source)

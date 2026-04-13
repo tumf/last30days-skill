@@ -38,6 +38,7 @@ from . import (
     tiktok,
     truthsocial,
     xai_x,
+    xcom_rs_x,
     xiaohongshu_api,
     xquik,
     youtube_yt,
@@ -151,6 +152,7 @@ def diagnose(config: dict[str, Any], requested_sources: list[str] | None = None)
         "local_mode": not any(providers_status.values()),
         "reasoning_provider": (config.get("LAST30DAYS_REASONING_PROVIDER") or "auto").lower(),
         "x_backend": x_status["source"],
+        "xcom_rs_status": x_status.get("xcom_rs_status", {}),
         "bird_installed": x_status["bird_installed"],
         "bird_authenticated": x_status["bird_authenticated"],
         "bird_username": x_status["bird_username"],
@@ -594,8 +596,14 @@ def _run_supplemental_searches(
         return
 
     backend = runtime.x_search_backend or env.get_x_source(config)
-    if backend != "bird":
-        return  # Handle search only works with Bird CLI
+    if backend not in ("bird", "xcom_rs"):
+        return  # Handle search requires Bird CLI or xcom-rs
+
+    # Select the appropriate handle search function
+    _handle_search = (
+        xcom_rs_x.search_handles if backend == "xcom_rs"
+        else bird_x.search_handles
+    )
 
     # Collect existing URLs for deduplication
     existing_urls = {
@@ -611,7 +619,7 @@ def _run_supplemental_searches(
     # Search primary handles (full weight)
     if handles:
         try:
-            raw_items = bird_x.search_handles(
+            raw_items = _handle_search(
                 handles, topic, from_date, count_per=3,
             )
         except Exception as exc:
@@ -638,7 +646,7 @@ def _run_supplemental_searches(
     # Search related handles with lower weight (0.3)
     if related_handles:
         try:
-            raw_items = bird_x.search_handles(
+            raw_items = _handle_search(
                 related_handles, topic, from_date, count_per=3,
             )
         except Exception as exc:
@@ -839,6 +847,9 @@ def _retrieve_stream(
         return [], {}
     if source == "x":
         backend = runtime.x_search_backend or env.get_x_source(config)
+        if backend == "xcom_rs":
+            result = xcom_rs_x.search_x(subquery.search_query, from_date, to_date, depth=depth)
+            return xcom_rs_x.parse_response(result, query=subquery.search_query), {}
         if backend == "bird":
             result = bird_x.search_x(subquery.search_query, from_date, to_date, depth=depth)
             return bird_x.parse_bird_response(result, query=subquery.search_query), {}

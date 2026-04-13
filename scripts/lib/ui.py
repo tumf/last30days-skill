@@ -183,7 +183,7 @@ I just researched that for you. Here's what I've got right now:
 
 {status_line}
 
-More sources means better research, but it works fine as-is. You can unlock more for free - log into x.com in your browser for X, and run `brew install yt-dlp` for YouTube transcripts. That gives you Reddit (with comments), X, YouTube, HN, and Polymarket - all free.
+More sources means better research, but it works fine as-is. You can unlock X search with xcom-rs (`cargo install xcom-rs` + dotenvx), and run `brew install yt-dlp` for YouTube transcripts. That gives you Reddit (with comments), X, YouTube, HN, and Polymarket - all free.
 
 Some examples of what you can do:
 - "last30 what are people saying about Figma"
@@ -197,7 +197,7 @@ Just start with "last30" and talk to me like normal.
 # Shorter promo for single missing key
 PROMO_SINGLE_KEY = {
     "reddit": "\n💡 Unlock TikTok and Instagram with SCRAPECREATORS_API_KEY - 10,000 free calls, no CC - scrapecreators.com\n",
-    "x": "\n💡 Unlock X: log into x.com in Firefox or Safari, then re-run. Or add AUTH_TOKEN/CT0 or XAI_API_KEY.\n",
+    "x": "\n💡 Unlock X: install xcom-rs + dotenvx with ~/.env bearer token. Or set XAI_API_KEY.\n",
     "web": "\n💡 Unlock native grounded web search with FIRECRAWL_API_KEY (recommended) or BRAVE_API_KEY.\n",
 }
 
@@ -520,15 +520,22 @@ def show_diagnostic_banner(diag: dict):
 
         # X/Twitter
         if has_x:
-            username = diag.get("bird_username", "")
-            label = f"Bird ({username})" if x_backend == "bird" and username else str(x_backend or "xai").upper()
+            if x_backend == "xcom_rs":
+                label = "xcom-rs"
+            elif x_backend == "bird":
+                username = diag.get("bird_username", "")
+                label = f"Bird ({username})" if username else "Bird"
+            else:
+                label = str(x_backend or "xai").upper()
             lines.append(f"{Colors.DIM}│{Colors.RESET}  {Colors.GREEN}✅ X/Twitter{Colors.RESET} — {label}                          {Colors.DIM}│{Colors.RESET}")
         else:
-            lines.append(f"{Colors.DIM}│{Colors.RESET}  {Colors.RED}❌ X/Twitter{Colors.RESET} — No X auth or fallback key        {Colors.DIM}│{Colors.RESET}")
-            if diag.get("bird_installed"):
-                lines.append(f"{Colors.DIM}│{Colors.RESET}     └─ Add AUTH_TOKEN/CT0 or XAI_API_KEY      {Colors.DIM}│{Colors.RESET}")
+            xcom_rs_status = diag.get("xcom_rs_status", {})
+            xcom_rs_missing = xcom_rs_status.get("missing", [])
+            lines.append(f"{Colors.DIM}│{Colors.RESET}  {Colors.RED}❌ X/Twitter{Colors.RESET} — No X backend available            {Colors.DIM}│{Colors.RESET}")
+            if xcom_rs_missing:
+                lines.append(f"{Colors.DIM}│{Colors.RESET}     └─ xcom-rs: {'; '.join(xcom_rs_missing[:2])}{Colors.DIM}│{Colors.RESET}")
             else:
-                lines.append(f"{Colors.DIM}│{Colors.RESET}     └─ Needs Node.js 22+ (Bird is bundled)           {Colors.DIM}│{Colors.RESET}")
+                lines.append(f"{Colors.DIM}│{Colors.RESET}     └─ Install xcom-rs + dotenvx, or set XAI_API_KEY{Colors.DIM}│{Colors.RESET}")
 
         # YouTube
         if has_youtube:
@@ -565,13 +572,19 @@ def show_diagnostic_banner(diag: dict):
             lines.append("│  ❌ Reddit    — unavailable                         │")
 
         if has_x:
-            lines.append("│  ✅ X/Twitter — available                            │")
-        else:
-            lines.append("│  ❌ X/Twitter — No X auth or fallback key          │")
-            if diag.get("bird_installed"):
-                lines.append("│     └─ Add AUTH_TOKEN/CT0 or XAI_API_KEY           │")
+            if x_backend == "xcom_rs":
+                lines.append("│  ✅ X/Twitter — xcom-rs                              │")
             else:
-                lines.append("│     └─ Needs Node.js 22+ (Bird is bundled)           │")
+                lines.append("│  ✅ X/Twitter — available                            │")
+        else:
+            xcom_rs_status = diag.get("xcom_rs_status", {})
+            xcom_rs_missing = xcom_rs_status.get("missing", [])
+            lines.append("│  ❌ X/Twitter — No X backend available              │")
+            if xcom_rs_missing:
+                hint = "; ".join(xcom_rs_missing[:2])
+                lines.append(f"│     └─ xcom-rs: {hint}│")
+            else:
+                lines.append("│     └─ Install xcom-rs + dotenvx, or set XAI_API_KEY│")
 
         if has_youtube:
             lines.append("│  ✅ YouTube   — yt-dlp found                        │")
